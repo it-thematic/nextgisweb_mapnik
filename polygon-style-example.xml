@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Map srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs">
+    <Style name="My Style">
+        <Rule>
+            <PolygonSymbolizer fill="rgb(206,154,156)"/>
+            <LineSymbolizer stroke="rgb(106,106,106)"/>
+        </Rule>
+    </Style>
+</Map>

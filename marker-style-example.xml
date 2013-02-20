@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Map srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs">
+<Style name="welllistp" filter-mode="first" >
+  <Rule>
+    <MarkersSymbolizer width="6" fill="#ff4455" stroke="#881133" allow-overlap="true" />
+  </Rule>
+</Style>
+</Map>

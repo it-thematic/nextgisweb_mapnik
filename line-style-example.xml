@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Map srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs">
+<Style name="line" filter-mode="first" >
+  <Rule>
+    <LineSymbolizer stroke-width="5" stroke="#777777" />
+  </Rule>
+</Style>
+<Style name="dash" filter-mode="first" >
+  <Rule>
+    <LineSymbolizer stroke="#ffffff" stroke-width="2.5" stroke-dasharray="6, 6" />
+  </Rule>
+</Style>
+</Map>
