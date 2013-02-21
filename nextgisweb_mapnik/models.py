@@ -44,9 +44,10 @@ def include(comp):
  
             ds = mapnik.MemoryDatasource()
             for (id, f) in enumerate(features):
-                # В Mapnik 2.1 Feature инициализуруется по-другому
-                #feature = mapnik.Feature(mapnik.Context(), id)
-                feature = mapnik.Feature(id)
+                if mapnik.mapnik_version() < 200100:
+                    feature = mapnik.Feature(id)
+                else:
+                    feature = mapnik.Feature(mapnik.Context(), id)
                 feature.add_geometries_from_wkb(f.geom.wkb)
                 ds.add_feature(feature)
 
