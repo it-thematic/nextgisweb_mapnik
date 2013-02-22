@@ -8,6 +8,9 @@ def setup_pyramid(comp, config):
     class MapnikStyleObjectWidget(ObjectWidget):
         model_attributes = ('style_content',)
 
+        def is_applicable(self):
+            return self.operation in ('create', 'edit')
+
         def populate_obj(self):
             ObjectWidget.populate_obj(self)
 
