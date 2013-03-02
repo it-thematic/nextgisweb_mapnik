@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import sqlalchemy as sa
-import sqlalchemy.orm as orm
 from StringIO import StringIO
 from PIL import Image
 import xml.etree.ElementTree as ET
@@ -12,6 +11,7 @@ except ImportError:
 
 from nextgisweb.geometry import box
 from nextgisweb.feature_layer import IFeatureLayer
+
 
 def include(comp):
 
@@ -41,7 +41,7 @@ def include(comp):
             feature_query.intersects(box(*extent, srid=self.layer.srs_id))
             feature_query.geom()
             features = feature_query()
- 
+
             ds = mapnik.MemoryDatasource()
             for (id, f) in enumerate(features):
                 if mapnik.mapnik_version() < 200100:
@@ -56,7 +56,7 @@ def include(comp):
             m = mapnik.Map(img_size[0], img_size[1])
             mapnik.load_map_from_string(m, style_content)
             m.zoom_to_box(mapnik.Box2d(*extent))
- 
+
             layer = mapnik.Layer('main')
             layer.datasource = ds
 
@@ -78,6 +78,4 @@ def include(comp):
             img = Image.open(buf)
             return img
 
-
     comp.MapnikStyle = MapnikStyle
-

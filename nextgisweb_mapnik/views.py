@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
-
 from nextgisweb.object_widget import ObjectWidget
 
 
 def setup_pyramid(comp, config):
 
     class MapnikStyleObjectWidget(ObjectWidget):
-        model_attributes = ('style_content',)
-
         def is_applicable(self):
             return self.operation in ('create', 'edit')
 
         def populate_obj(self):
             ObjectWidget.populate_obj(self)
-
-            for k in self.model_attributes:
-                setattr(self.obj, k, self.data[k])
+            self.obj.style_content = self.data['content']
 
         def widget_module(self):
             return 'mapnik_style/Widget'
@@ -24,7 +19,9 @@ def setup_pyramid(comp, config):
             result = ObjectWidget.widget_params(self)
 
             if self.obj:
-                result['value'] = dict([(k, getattr(self.obj, k)) for k in self.model_attributes])
+                result['value'] = dict(
+                    content=self.obj.style_content
+                )
 
             return result
 
