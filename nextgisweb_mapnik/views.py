@@ -62,10 +62,10 @@ def setup_pyramid(comp, config):
             if self.obj:
                 result['value'] = dict(xml=self.obj.xml)
             else:
-                result['value'] = dict(xml=MapnikStyle.default_style_xml(self.options['parent']))
+                result['value'] = dict(xml=DEFAULT_STYLE_XML)
             return result
 
-    MapnikStyle.object_widget = MapnikStyleObjectWidget
+    MapnikVectorStyle.object_widget = MapnikStyleObjectWidget
 
     def mapnik_import(request):
         fileid = request.json_body['file']['upload_meta'][0]['id']
