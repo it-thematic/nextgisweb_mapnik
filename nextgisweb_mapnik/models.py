@@ -1,33 +1,42 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import, print_function, unicode_literals
-import sqlalchemy as sa
-from PIL import Image
+from collections import namedtuple
+
 from lxml import etree
-
-try:
-    from StringIO import StringIO as StringIO
-except ImportError:
-    from io import StringIO as StringIO
-
 try:
     import mapnik
 except ImportError:
     import mapnik2 as mapnik
+from zope.interface import implementer
 
-from zope.interface import implements
-
-from nextgisweb.geometry import box
+from nextgisweb import db
+from nextgisweb.env import env
 from nextgisweb.feature_layer import IFeatureLayer, on_data_change as on_data_change_feature_layer
 from nextgisweb.models import declarative_base
-from nextgisweb.render import (IRenderableStyle, IExtentRenderRequest, ITileRenderRequest, ILegendableStyle,
-                               on_style_change,
-                               on_data_change as on_data_change_renderable)
-from nextgisweb.resource import Resource, ResourceScope, DataScope, Serializer, SerializedProperty
+from nextgisweb.render import (
+    IExtentRenderRequest,
+    ILegendableStyle,
+    IRenderableStyle,
+    ITileRenderRequest,
+    on_data_change as on_data_change_renderable,
+    on_style_change
+)
+from nextgisweb.resource import (
+    DataScope,
+    Resource,
+    ResourceScope,
+    Serializer,
+    SerializedProperty
+)
 from nextgisweb.resource.exception import ValidationError
 
-from .util import _, DEFAULT_IMAGE_FORMAT, DEFAULT_STYLE_XML
+from .util import _, DEFAULT_STYLE_XML
 
 Base = declarative_base()
+
+VectorRenderOptions = namedtuple('VectorRenderOptions', ['style', 'render_size', 'extended', 'target_box'])
+RasterRenderOptions = namedtuple('RasterRenderOptions', ['style', 'render_size', 'extended', 'target_box'])
+LegendOptions = namedtuple('LegendOptions', ['style', ])
 
 
 def _render_bounds(extent, size, padding):
@@ -59,15 +68,14 @@ def _render_bounds(extent, size, padding):
     return extended, render_size, target_box
 
 
-class MapnikStyle(Base, Resource):
-    identity = 'mapnik_style'
+@implementer(IRenderableStyle, ILegendableStyle)
+class MapnikVectorStyle(Base, Resource):
+    identity = 'mapnik_vector_style'
     cls_display_name = _("Mapnik style")
 
     __scope__ = DataScope
 
-    implements(IRenderableStyle, ILegendableStyle)
-
-    xml = sa.Column(sa.Unicode, nullable=False)
+    xml = db.Column(db.Unicode, default=DEFAULT_STYLE_XML, nullable=False)
 
     @classmethod
     def check_parent(cls, parent):
@@ -84,66 +92,11 @@ class MapnikStyle(Base, Resource):
     def render_request(self, srs, cond=None):
         return RenderRequest(self, srs, cond)
 
-    @classmethod
-    def default_style_xml(cls, layer):
-        return DEFAULT_STYLE_XML
-
-    @classmethod
-    def is_layer_supported(cls, layer):
-        return IFeatureLayer.providedBy(layer)
-
-    def render_image(self, srs, extent, size, cond, padding=0):
+    def _render_image(self, src, extent, size, cond, padding=0):
         extended, render_size, target_box = _render_bounds(extent, size, padding)
+        options = RenderOptions(self, render_size, extended, padding)
 
-        feature_query = self.parent.feature_query()
-
-        if cond:
-            feature_query.filter(**cond)
-
-        if hasattr(feature_query, 'src'):
-            feature_query.srs(srs)
-        feature_query.intersects(box(*extended, srid=srs.id))
-        feature_query.geom()
-        features = feature_query()
-
-        if features.total_count < 1:
-            return Image.new('RGBA', (size[0], size[1]), (255, 255, 255, 0))
-
-        ds = mapnik.MemoryDatasource()
-        for (id, f) in enumerate(features):
-            if mapnik.mapnik_version() < 200100:
-                feature = mapnik.Feature(id)
-            else:
-                feature = mapnik.Feature(mapnik.Context(), id)
-            feature.add_geometries_from_wkb(f.geom.wkb)
-            ds.add_feature(feature)
-
-        style_content = str(self.xml)
-
-        m = mapnik.Map(render_size[0], render_size[1])
-        mapnik.load_map_from_string(m, style_content)
-        m.zoom_to_box(mapnik.Box2d(*extended))
-
-        layer = mapnik.Layer('main')
-        layer.datasource = ds
-
-        root = etree.fromstring(style_content)
-        styles = [s.attrib.get('name') for s in root.iter('Style')]
-        for s in styles:
-            layer.styles.append(s)
-        m.layers.append(layer)
-
-        img = mapnik.Image(render_size[0], render_size[1])
-        mapnik.render(m, img)
-        data = img.tostring(DEFAULT_IMAGE_FORMAT)
-
-        # Преобразуем изображение из PNG в объект PIL
-        buf = StringIO()
-        buf.write(data)
-        buf.seek(0)
-
-        img = Image.open(buf)
-        return img
+        return env.mapnik.renderer_job(options)
 
 
 @on_data_change_feature_layer.connect
@@ -153,10 +106,16 @@ def on_data_change_feature_layer(resource, geom):
             on_data_change_renderable.fire(child, geom)
 
 
+@implementer(IExtentRenderRequest, ITileRenderRequest)
 class RenderRequest(object):
-    implements(IExtentRenderRequest, ITileRenderRequest)
 
     def __init__(self, style, srs, cond=None):
+        """
+
+        :param MapnikStyle style:
+        :param SRS srs:
+        :param dict cond:
+        """
         self.style = style
         self.srs = srs
         self.cond = cond
@@ -173,16 +132,14 @@ class RenderRequest(object):
         )
 
 
-DataScope.read.require(
-    DataScope.read,
-    attr='parent', cls=MapnikStyle)
+DataScope.read.require(DataScope.read, attr='parent', cls=MapnikStyle)
 
 
 class _xml_attr(SerializedProperty):
 
     def setter(self, srlzr, value):
         try:
-            layer = etree.fromstring(value)
+            etree.fromstring(value)
         except etree.XMLSyntaxError as e:
             raise ValidationError(e.message)
 
@@ -194,12 +151,8 @@ class _xml_attr(SerializedProperty):
         on_style_change.fire(srlzr.obj)
 
 
-PR_READ = ResourceScope.read
-PR_UPDATE = ResourceScope.update
-
-
-class MapnikStyleSerializer(Serializer):
+class StyleSerializer(Serializer):
     identity = MapnikStyle.identity
     resclass = MapnikStyle
 
-    xml = _xml_attr(read=PR_READ, write=PR_UPDATE)
+    xml = _xml_attr(read=ResourceScope.read, write=ResourceScope.update)

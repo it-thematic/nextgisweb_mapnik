@@ -1,15 +1,21 @@
 from setuptools import setup, find_packages
-import sys, os
 
 version = '0.0'
 
 requires = (
-    'nextgisweb',
+    'mapnik',
+    'nextgisweb'
 )
 
 entry_points = {
-    'nextgisweb.component': ['nextgisweb_mapnik = nextgisweb_mapnik', ],
-    'nextgisweb.amd_packages': [ 'nextgisweb_mapnik = nextgisweb_mapnik:amd_packages', ],
+    'nextgisweb.packages': [
+        'nextgisweb_mapnik = nextgisweb_mapnik:pkginfo',
+    ],
+
+    'nextgisweb.amd_packages': [
+        'nextgisweb_mapnik = nextgisweb_mapnik:amd_packages',
+    ],
+
 }
 
 setup(name='nextgisweb_mapnik',
