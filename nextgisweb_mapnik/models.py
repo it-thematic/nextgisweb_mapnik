@@ -94,7 +94,7 @@ class MapnikVectorStyle(Base, Resource):
 
     def _render_image(self, src, extent, size, cond, padding=0):
         extended, render_size, target_box = _render_bounds(extent, size, padding)
-        options = RenderOptions(self, render_size, extended, padding)
+        options = VectorRenderOptions(self, render_size, extended, padding)
 
         return env.mapnik.renderer_job(options)
 
@@ -102,7 +102,7 @@ class MapnikVectorStyle(Base, Resource):
 @on_data_change_feature_layer.connect
 def on_data_change_feature_layer(resource, geom):
     for child in resource.children:
-        if isinstance(child, MapnikStyle):
+        if isinstance(child, MapnikVectorStyle):
             on_data_change_renderable.fire(child, geom)
 
 
@@ -132,7 +132,7 @@ class RenderRequest(object):
         )
 
 
-DataScope.read.require(DataScope.read, attr='parent', cls=MapnikStyle)
+DataScope.read.require(DataScope.read, attr='parent', cls=MapnikVectorStyle)
 
 
 class _xml_attr(SerializedProperty):
@@ -152,7 +152,7 @@ class _xml_attr(SerializedProperty):
 
 
 class StyleSerializer(Serializer):
-    identity = MapnikStyle.identity
-    resclass = MapnikStyle
+    identity = MapnikVectorStyle.identity
+    resclass = MapnikVectorStyle
 
     xml = _xml_attr(read=ResourceScope.read, write=ResourceScope.update)
