@@ -8,12 +8,12 @@ from nextgisweb.env import env
 from nextgisweb.object_widget import ObjectWidget
 from nextgisweb.resource import Widget
 
-from .models import MapnikStyle
-from .util import _
+from .models import MapnikVectorStyle
+from .util import _, DEFAULT_STYLE_XML
 
 
 class MapnikStyleWidget(Widget):
-    resource = MapnikStyle
+    resource = MapnikVectorStyle
     operation = ('create', 'update')
     amdmod = 'ngw-mapnik/Widget'
 
@@ -22,7 +22,7 @@ class MapnikStyleWidget(Widget):
 
         # TODO: Security
         if self.operation == 'create':
-            res['defaultValue'] = MapnikStyle.default_style_xml(self.obj.parent)
+            res['defaultValue'] = DEFAULT_STYLE_XML
         return res
 
 
