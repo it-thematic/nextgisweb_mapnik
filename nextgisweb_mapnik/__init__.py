@@ -20,7 +20,7 @@ from .util import _
 
 
 class MapnikStyleComponent(Component):
-    identity = 'mapnik_style'
+    identity = 'mapnik'
     metadata = Base.metadata
 
     default_max_zoom = 19
